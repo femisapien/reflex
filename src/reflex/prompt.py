@@ -248,6 +248,8 @@ def build_branches(
 
     out: list[Branch] = []
     for order in distinct_orders(keys, permutations, rng):
+        if len(order) > len(LETTERS):
+            raise ValueError(f"single-letter readout supports at most {len(LETTERS)} options")
         labels = [LETTERS[i] for i in range(len(order))]
         labelled = [(lab, desc_of(k)) for lab, k in zip(labels, order)]
         body = _options_block(q.instructions, labelled, ask, fmt)
@@ -294,6 +296,8 @@ def _build_compact(
         order = list(keys)
         if p > 0:
             rng.shuffle(order)
+        if len(order) > len(LETTERS):
+            raise ValueError(f"single-letter readout supports at most {len(LETTERS)} options")
         labels = [LETTERS[i] for i in range(len(order))]
         labelled = [(lab, desc_of(k)) for lab, k in zip(labels, order, strict=True)]
         out.append(

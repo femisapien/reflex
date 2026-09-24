@@ -19,7 +19,6 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 # render for the model (e.g. {"what": ..., "examples": [...]}).
 Text = str | dict[str, Any] | list[Any]
 
-MAX_CHOICE_OPTIONS = 26  # single-letter readout; see README "Limits"
 MIN_SCORE_LEVELS = 2
 MAX_SCORE_LEVELS = 10
 
@@ -48,8 +47,6 @@ class ChoiceQuestion(BaseModel):
     def _check_options(cls, v: dict[str, Text | None]) -> dict[str, Text | None]:
         if len(v) < 2:
             raise ValueError("a choice needs at least two options")
-        if len(v) > MAX_CHOICE_OPTIONS:
-            raise ValueError(f"at most {MAX_CHOICE_OPTIONS} options per choice")
         for k in v:
             if not k or not k.strip():
                 raise ValueError("option keys must be non-empty")

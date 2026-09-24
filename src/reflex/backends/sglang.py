@@ -59,7 +59,8 @@ from reflex.backends import BackendError
 from reflex.images import has_images
 from reflex.prompt import Branch, PromptFormat, build_branches
 from reflex.readout import Calibration, merge_branches, to_answer
-from reflex.schema import SystemOneRequest, SystemOneResponse, Usage
+from reflex.schema import ChoiceQuestion, SystemOneRequest, SystemOneResponse, Usage
+from reflex.wide_choice import build_choice_branches, choice_option_capacity
 
 log = logging.getLogger(__name__)
 
@@ -98,6 +99,7 @@ class SGLangBackend:
 
         self.url = url.rstrip("/")
         self.tok = tokenizer or AutoTokenizer.from_pretrained(model_id)
+        self.choice_option_capacity = choice_option_capacity(self.tok)
         if fmt is None:
             template = self.tok.chat_template or ""
             fmt = PromptFormat(chat=bool(template), no_think="enable_thinking" in template)
@@ -252,9 +254,26 @@ class SGLangBackend:
     def answer(self, req: SystemOneRequest) -> SystemOneResponse:
         branches: list[Branch] = []
         for qid, q in req.questions.items():
-            branches.extend(
-                build_branches(qid, q, self.fmt, req.permutations or self.default_permutations)
-            )
+            if isinstance(q, ChoiceQuestion) and len(q.criteria) > self.choice_option_capacity:
+                raise ValueError(
+                    f"choice question {qid!r} has {len(q.criteria)} options; "
+                    f"this tokenizer supports at most {self.choice_option_capacity}"
+                )
+            if isinstance(q, ChoiceQuestion) and len(q.criteria) > 26:
+                branches.extend(
+                    build_choice_branches(
+                        qid,
+                        q.instructions,
+                        q.criteria,
+                        self.fmt,
+                        self.tok,
+                        permutations=req.permutations or self.default_permutations,
+                    )
+                )
+            else:
+                branches.extend(
+                    build_branches(qid, q, self.fmt, req.permutations or self.default_permutations)
+                )
         branch_ids = [self._encode(b.text) for b in branches]
         prefix_ids, key = self.state_inputs(req.state)
 

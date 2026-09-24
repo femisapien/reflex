@@ -212,3 +212,48 @@ def test_a_missing_label_id_is_an_error():
             backend.answer(_request(3, 2))
     finally:
         backend.close()
+
+
+def test_wide_choice_returns_every_option_in_one_batched_call():
+    server = FakeServer()
+    backend = _backend(8, server)
+    criteria = {f"option_{i}": f"description {i}" for i in range(151)}
+    request = SystemOneRequest(
+        state="A synthetic state.",
+        questions={
+            "q": {"type": "choice", "instructions": "Select an option.", "criteria": criteria}
+        },
+        permutations=2,
+    )
+    try:
+        answer = backend.answer(request).answers["q"]
+    finally:
+        backend.close()
+
+    assert server.batch_sizes == [1, 2]
+    assert set(answer.probabilities) == set(criteria)
+    assert answer.choice in criteria
+    assert sum(answer.probabilities.values()) == pytest.approx(1.0, abs=1e-4)
+
+
+def test_wide_choice_limit_is_reported_and_rejected_before_inference():
+    server = FakeServer()
+    backend = _backend(8, server)
+    request = SystemOneRequest(
+        state="A synthetic state.",
+        questions={
+            "q": {
+                "type": "choice",
+                "instructions": "Select an option.",
+                "criteria": {f"option_{i}": None for i in range(677)},
+            }
+        },
+    )
+    try:
+        assert backend.choice_option_capacity == 676
+        with pytest.raises(ValueError, match="at most 676"):
+            backend.answer(request)
+    finally:
+        backend.close()
+
+    assert server.calls == 0

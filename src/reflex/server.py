@@ -59,6 +59,7 @@ def create_app(engine, api_key: str | None = None) -> FastAPI:
             "calibration": engine.cal.temperature,
             "strategy": engine.strategy,
             "device": str(engine.device),
+            "choice_option_capacity": getattr(engine, "choice_option_capacity", 26),
         }
 
     @app.get("/v1/models")

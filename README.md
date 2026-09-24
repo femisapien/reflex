@@ -381,7 +381,9 @@ in [docs/VISION.md](docs/VISION.md).
 - The browser demo runs all questions of a request in one batched forward pass, but
   re-reads the state for every question and does not cache it between requests, so it
   is fine for a handful of questions, not hundreds.
-- A `choice` question can have up to 26 options; `score` can have 2 to 10 levels.
+- The SGLang backend accepts wide `choice` questions when its tokenizer has enough
+  distinct one-token labels; `/healthz` reports its option capacity. Other backends
+  currently support up to 26 options. `score` can have 2 to 10 levels.
 - `--device mps` runs the server on an Apple Silicon GPU, `--backend sglang` on an SGLang
   server; `--permutations N` sets how many option orders each question is read in.
 - The model is not magic: check its answers on a handful of your own examples before
