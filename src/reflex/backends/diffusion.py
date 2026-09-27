@@ -175,6 +175,7 @@ class DiffusionBackend:
         canvas_length: int = 64,
         max_context: int = 8192,
         max_concurrent_calls: int = 8,
+        max_concurrent_requests: int = 8,
         timeout: float = 120,
         seed: int = 0,
         constrained: bool = False,
@@ -195,6 +196,7 @@ class DiffusionBackend:
             ("permutations", default_permutations, 8),
             ("canvas_length", canvas_length, 256),
             ("max_concurrent_calls", max_concurrent_calls, 128),
+            ("max_concurrent_requests", max_concurrent_requests, 128),
         ):
             if not isinstance(value, int) or isinstance(value, bool) or not 1 <= value <= upper:
                 raise ValueError(f"{name} must be an integer in 1..{upper}")
@@ -252,8 +254,8 @@ class DiffusionBackend:
             limits=httpx.Limits(max_connections=max_concurrent_calls),
         )
         self._pool = ThreadPoolExecutor(max_workers=max_concurrent_calls)
-        # Bound queued reads too: at most eight complete API requests prepare/submit work.
-        self._requests = threading.BoundedSemaphore(8)
+        # Limit complete requests admitted to compilation and upstream work.
+        self._requests = threading.BoundedSemaphore(max_concurrent_requests)
 
     def close(self):
         self._pool.shutdown(wait=True, cancel_futures=True)

@@ -353,6 +353,23 @@ def test_state_first_p2_keeps_independent_order_reads_and_rechecks_context():
         assert calls == []
 
 
+def test_state_first_compiles_with_one_chat_template_tokenization():
+    class CountingTokenizer(Tokenizer):
+        calls = 0
+
+        def apply_chat_template(self, messages, **kwargs):
+            self.calls += 1
+            return super().apply_chat_template(messages, **kwargs)
+
+    tokenizer = CountingTokenizer()
+    request = SystemOneRequest(**REQUEST)
+    branch = question_branches("inside", request.questions["inside"], 1)[0]
+    with backend(tokenizer=tokenizer, prompt_layout="user_state_first") as (engine, _):
+        before = tokenizer.calls
+        engine.compile("short state", [branch], 0, 0)
+        assert tokenizer.calls - before == 1
+
+
 def test_split_overflow_preserves_answers_and_rejects_unsplittable_questions():
     req = SystemOneRequest(**REQUEST)
     with backend(mode="joint", default_permutations=2, split_overflow=True, canvas_length=16) as (
@@ -641,6 +658,7 @@ def test_upstream_errors_do_not_echo_response_body():
         {"mode": "auto"},
         {"default_permutations": 9},
         {"max_concurrent_calls": 0},
+        {"max_concurrent_requests": 0},
     ],
 )
 def test_invalid_configuration(kwargs):

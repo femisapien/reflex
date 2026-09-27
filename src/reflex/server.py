@@ -192,6 +192,7 @@ def _diffusion_backend(args):
         canvas_length=args.diffusion_canvas,
         max_context=args.max_pack_tokens,
         max_concurrent_calls=args.diffusion_concurrency,
+        max_concurrent_requests=args.diffusion_request_concurrency,
         seed=args.diffusion_seed,
         constrained=args.diffusion_constrained,
         compact_canvas=args.diffusion_compact_canvas,
@@ -299,6 +300,12 @@ def main(argv=None):
         help="place the state before the question schema in one user message when selected",
     )
     ap.add_argument("--diffusion-concurrency", type=int, default=8)
+    ap.add_argument(
+        "--diffusion-request-concurrency",
+        type=int,
+        default=8,
+        help="maximum complete diffusion requests admitted at once",
+    )
     ap.add_argument("--diffusion-seed", type=int, default=0)
     ap.add_argument(
         "--diffusion-constrained",

@@ -32,6 +32,10 @@ answers; choose it by evaluating your own cases. Both layouts report actual
 upstream prompt tokens and check the final tokenized prompt against the context
 limit before sending any reads.
 
+`--diffusion-request-concurrency` bounds complete requests admitted for
+compilation and execution (default 8). It is separate from
+`--diffusion-concurrency`, which bounds simultaneous upstream calls.
+
 The API schema accepts up to 255 choice options, though a diffusion request can
 still be refused if its tokenizer cannot produce enough distinct one-token answer
 codes, the canvas or context is too small, or the selected-label limit is lower
