@@ -96,10 +96,13 @@ class SGLangBackend:
         max_concurrent_calls: int = 8,
         timeout: float = 120.0,
         state_cache_entries: int = 8,
+        context_length: int | None = None,
     ):
         from transformers import AutoTokenizer
 
         self.url = url.rstrip("/")
+        # SGLang's --context-length; a question preview that would overflow it is dropped
+        self.context_length = context_length
         self.tok = tokenizer or AutoTokenizer.from_pretrained(model_id)
         self.choice_option_capacity = choice_option_capacity(self.tok)
         if fmt is None:
@@ -343,11 +346,15 @@ class SGLangBackend:
                     build_branches(qid, q, self.fmt, req.permutations or self.default_permutations)
                 )
         branch_ids = [self._encode(b.text) for b in branches]
+        kinds = [q.type for q in req.questions.values()]
         prefix_ids, key = self.state_inputs(
-            req.state,
-            [q.instructions for q in req.questions.values()],
-            [q.type for q in req.questions.values()],
+            req.state, [q.instructions for q in req.questions.values()], kinds
         )
+        # The preview repeats every question's instructions ahead of the state; when that
+        # would push the longest branch past the context window, serve without it
+        longest = max(map(len, branch_ids), default=0)
+        if self.context_length and len(prefix_ids) + longest >= self.context_length:
+            prefix_ids, key = self.state_inputs(req.state, None, kinds)
 
         hit = key in self._seen
         fut = asyncio.run_coroutine_threadsafe(

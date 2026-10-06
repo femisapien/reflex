@@ -179,6 +179,8 @@ def commands(snapshot, *, permutations=2, mamba_slots=160, ssm_dtype=None):
         "0.0.0.0",
         "--port",
         "8008",
+        "--context-length",
+        "65536",
     ]
     if ssm_dtype is not None:
         engine += ["--mamba-ssm-dtype", ssm_dtype]

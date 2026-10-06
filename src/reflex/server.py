@@ -160,6 +160,7 @@ def _sglang_backend(args):
         model_name=args.served_name or args.model,
         default_permutations=args.permutations,
         max_concurrent_calls=args.sglang_concurrency,
+        context_length=args.context_length,
     )
     log.info("sglang backend: %s serving %s", args.sglang_url, backend.model_name)
     return backend
@@ -231,6 +232,13 @@ def main(argv=None):
         "--sglang-url",
         default="http://127.0.0.1:30000",
         help="where the SGLang server listens, for --backend sglang",
+    )
+    ap.add_argument(
+        "--context-length",
+        type=int,
+        default=None,
+        help="the SGLang server's --context-length, for --backend sglang; a question "
+        "preview that would overflow it is left out of that request",
     )
     ap.add_argument("--host", default="127.0.0.1")
     ap.add_argument("--port", type=int, default=8008)
