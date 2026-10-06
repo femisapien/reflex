@@ -182,14 +182,14 @@ class SGLangBackend:
     def _encode(self, text: str) -> list[int]:
         return self.tok.encode(text, add_special_tokens=False)
 
-    def state_inputs(self, state) -> tuple[list[int], str]:
+    def state_inputs(self, state, preview=None, kinds=None) -> tuple[list[int], str]:
         """Prefix token ids and the cache key for a state. Text only."""
         if has_images(state):
             raise NotImplementedError(
                 "the SGLang backend does not carry images in the state; "
                 "serve the transformers backend for image states"
             )
-        text = self.fmt.prefix(state)
+        text = self.fmt.prefix(state, preview, kinds)
         return self._encode(text), hashlib.sha256(text.encode()).hexdigest()
 
     # -------------------------------------------------------------------------- transport
@@ -343,7 +343,11 @@ class SGLangBackend:
                     build_branches(qid, q, self.fmt, req.permutations or self.default_permutations)
                 )
         branch_ids = [self._encode(b.text) for b in branches]
-        prefix_ids, key = self.state_inputs(req.state)
+        prefix_ids, key = self.state_inputs(
+            req.state,
+            [q.instructions for q in req.questions.values()],
+            [q.type for q in req.questions.values()],
+        )
 
         hit = key in self._seen
         fut = asyncio.run_coroutine_threadsafe(

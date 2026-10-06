@@ -84,6 +84,16 @@ DEFAULT_TEXTS = {
     "score_level_prefix": "(level {i} of {n})",
     # "yesno" reads the Yes/No tokens; "letters" presents yes/no as a lettered pair (A/B)
     "noul_readout": "letters",
+    # Heading for a list of the request's questions shown before the state when a request
+    # asks more than one; "" = off
+    "question_preview": "",
+    # "1" also previews a request whose single question is a choice question
+    "preview_single_choice": "",
+    # System prompt for requests whose questions are all choice/score; "" = system_prompt
+    "choice_system_prompt": "",
+    # "tagged" labels yes/no options "yes: <text>"; "plain" labels them "Yes"/"No" and
+    # appends the criteria text only when the caller gave one
+    "noul_options": "tagged",
 }
 
 COMPACT_SYSTEM_PROMPT = (
@@ -128,15 +138,34 @@ class PromptFormat:
     def with_texts(cls, base: PromptFormat, texts: dict[str, str]) -> PromptFormat:
         return cls(chat=base.chat, no_think=base.no_think, style=base.style, texts=dict(texts))
 
-    def prefix(self, state: Text) -> str:
+    def prefix(
+        self, state: Text, preview: list[Text] | None = None, kinds: list[str] | None = None
+    ) -> str:
+        """`preview` is the request's question instructions and `kinds` their types. When the
+        `question_preview` heading is set they are listed ahead of the state (markdown style
+        only) if there are several, or if `preview_single_choice` is on and the one question
+        is a choice question."""
         if self.style == "compact":
             # the state is the first member of the JSON payload; branches close the object
             body = '{"state": ' + json.dumps(state, ensure_ascii=False) + ", "
         else:
             body = f"{self.t('state_heading')}\n{render_text(state)}\n\n"
+            heading = self.t("question_preview")
+            # one yes/no question needs no preview: it would only repeat the question below
+            several = bool(preview) and len(preview) > 1
+            single_choice = (
+                bool(preview) and len(preview) == 1 and kinds == ["choice"]
+                and self.t("preview_single_choice") == "1"
+            )
+            if heading and (several or single_choice):
+                listed = "\n".join(f"- {render_text(x)}" for x in preview)
+                body = f"{heading}\n{listed}\n\n{body}"
+        system = self.system_prompt
+        if kinds and self.t("choice_system_prompt") and all(k in ("choice", "score") for k in kinds):
+            system = self.t("choice_system_prompt")
         if not self.chat:
-            return f"{self.system_prompt}\n\n{body}"
-        return f"<|im_start|>system\n{self.system_prompt}<|im_end|>\n<|im_start|>user\n{body}"
+            return f"{system}\n\n{body}"
+        return f"<|im_start|>system\n{system}<|im_end|>\n<|im_start|>user\n{body}"
 
     def branch(self, body: str) -> str:
         if not self.chat:
@@ -207,13 +236,18 @@ def build_branches(
         t = render_text(q.criteria.true) if q.criteria else ""
         f = render_text(q.criteria.false) if q.criteria else ""
         yes_text, no_text = (t or fmt.t("noul_true_default")), (f or fmt.t("noul_false_default"))
+        if fmt.t("noul_options") == "plain":
+            yes_opt = f"Yes: {t}" if t else "Yes"
+            no_opt = f"No: {f}" if f else "No"
+        else:
+            yes_opt, no_opt = "yes: " + yes_text, "no: " + no_text
         out: list[Branch] = []
         for swapped in [False, True] if permutations > 1 else [False]:
             keys = [False, True] if swapped else [True, False]
             if fmt.t("noul_readout") == "letters":
-                pair = [("A", "yes: " + yes_text), ("B", "no: " + no_text)]
+                pair = [("A", yes_opt), ("B", no_opt)]
                 if swapped:
-                    pair = [("A", "no: " + no_text), ("B", "yes: " + yes_text)]
+                    pair = [("A", no_opt), ("B", yes_opt)]
                 body = _options_block(q.instructions, pair, fmt.t("choice_ask"), fmt)
                 out.append(Branch(qid, "noul", fmt.branch(body), ["A", "B"], keys))
             else:
