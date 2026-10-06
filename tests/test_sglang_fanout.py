@@ -230,7 +230,9 @@ def test_wide_choice_returns_every_option_in_one_batched_call():
     finally:
         backend.close()
 
-    assert server.batch_sizes == [1, 2]
+    # A short cold request with few branches is sent directly, without a separate
+    # prefix-warming call (selective admission); both orders go in one batched call
+    assert server.batch_sizes == [2]
     assert set(answer.probabilities) == set(criteria)
     assert answer.choice in criteria
     assert sum(answer.probabilities.values()) == pytest.approx(1.0, abs=1e-4)

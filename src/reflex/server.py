@@ -62,6 +62,11 @@ def create_app(engine, api_key: str | None = None) -> FastAPI:
             "choice_option_capacity": getattr(engine, "choice_option_capacity", 26),
         }
 
+    if hasattr(engine, "routing_snapshot"):
+        @app.get("/v1/experiment-routing")
+        def routing():
+            return engine.routing_snapshot()
+
     @app.get("/v1/models")
     def models():
         return {
