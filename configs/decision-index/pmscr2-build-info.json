@@ -1,0 +1,17 @@
+{
+  "mamba_cache_slots": 320,
+  "mamba_ssm_dtype": "bfloat16",
+  "model": "Qwen/Qwen3.8-27B-FP8",
+  "model_revision": "017b9c7af6b5689d5dd426a76e0bc077eb5ca20a",
+  "permutations": 2,
+  "public_main_base": "231f896d818a62b94fec305ed553df1088486dcb",
+  "readout_precision_commit": "3e73a49879c5f64f1a5cf7522cc5349ad09925c6",
+  "readout_precision_patch_sha256": "86d8a5dbfa76b14f9a42231584bbaea7555a3481d07d99b0fd59b9b029c3fd2f",
+  "reflex_source_commit": "d08a8c6cd63a81164c27f4c0f1f10b991eb2c32d",
+  "request_limit": 6,
+  "routing_policy": "pressure",
+  "selective_admission_patch_sha256": "0c5074951d673a7f6d537c1f8a33edf095e65820a610a934f08ff15224aa3447",
+  "sglang_image": "lmsysorg/sglang@sha256:b27fce60bc5494c118c4910702812bcfa8cee67abcdd1ff8b0902f21647552f4",
+  "startup_observer_sha256": "970d17dce298ba5234f301f73aacf463cd50b9ccccee0388d37526e1203d5fa6",
+  "supervisor_source_commit": "d08a8c6cd63a81164c27f4c0f1f10b991eb2c32d"
+}
